@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caelaficha - Generación de Imágenes</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;600;700;800&family=Orbitron:wght@600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.net.min.js"></script>
+    <style>
+        /* Replicando los estilos base de Caelaficha para coherencia */
+        :root {
+            --primary: #6a4cff;
+            --secondary: #00e1ff;
+            --accent: #ff2a78;
+            --dark: #0a0c17;
+            --darker: #070812;
+            --light: #e0f7ff; /* Color para texto claro, ahora aplicado a enlaces */
+            --text: #c7e5ff;
+            --grid-color: rgba(106, 76, 255, 0.05);
+            --card-bg: rgba(20, 22, 40, 0.7);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Exo 2', sans-serif;
+            background: var(--darker);
+            color: var(--text);
+            overflow-x: hidden;
+            line-height: 1.7;
+            position: relative;
+            min-height: 100vh;
+        }
+        
+        #vanta-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+        }
+        
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .glow-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(106, 76, 255, 0.1) 0%, rgba(7, 8, 18, 0) 70%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header */
+        header {
+            padding: 25px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            background: rgba(10, 12, 23, 0.85);
+            border-bottom: 1px solid rgba(106, 76, 255, 0.2);
+            animation: fadeIn 1s ease;
+        }
+        
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        
+        .logo-icon {
+            font-size: 28px;
+            color: var(--secondary);
+            animation: pulse 3s infinite;
+        }
+        
+        .logo-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 26px;
+            font-weight: 800;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: 1px;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 35px;
+        }
+        
+        nav a {
+            color: var(--light); /* Cambiado a blanco (var(--light)) */
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--secondary);
+            transition: width 0.3s ease;
+        }
+        
+        nav a:hover {
+            color: var(--secondary);
+        }
+        
+        nav a:hover::after {
+            width: 100%;
+        }
+        
+        .cta-button {
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-family: 'Exo 2', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 20px rgba(106, 76, 255, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cta-button::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -60%;
+            width: 40px;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(25deg);
+            transition: all 0.4s;
+        }
+        
+        .cta-button:hover::after {
+            left: 120%;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 30px rgba(106, 76, 255, 0.7);
+        }
+        
+        /* Hero Section */
+        .hero {
+            padding: 120px 0 100px;
+            position: relative;
+            text-align: center;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .hero h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 4.2rem;
+            font-weight: 800;
+            margin-bottom: 25px;
+            line-height: 1.1;
+        }
+        
+        .hero-gradient {
+            background: linear-gradient(90deg, var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hero p {
+            font-size: 1.3rem;
+            max-width: 700px;
+            margin: 0 auto 40px;
+            color: var(--light);
+        }
+        
+        .hero-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .secondary-button {
+            background: transparent;
+            color: var(--secondary);
+            border: 2px solid var(--secondary);
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 16px;
+            box-shadow: 0 0 15px rgba(0, 225, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .secondary-button:hover {
+            background: rgba(0, 225, 255, 0.15);
+            box-shadow: 0 0 25px rgba(0, 225, 255, 0.4);
+        }
+        
+        /* Features Section */
+        .section-title {
+            text-align: center;
+            margin-bottom: 70px;
+            position: relative;
+        }
+        
+        .section-title h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.8rem;
+            display: inline-block;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .section-title h2::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 2px;
+        }
+        
+        .section-title p {
+            max-width: 600px;
+            margin: 25px auto 0;
+            font-size: 1.1rem;
+            color: var(--light);
+        }
+        
+        .features {
+            padding: 100px 0;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 35px;
+        }
+        
+        .feature-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(106, 76, 255, 0.2);
+            border-radius: 15px;
+            padding: 40px 30px;
+            transition: all 0.4s ease;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            cursor: pointer;
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(106, 76, 255, 0.1), rgba(0, 225, 255, 0.05));
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary);
+            box-shadow: 0 15px 40px rgba(106, 76, 255, 0.2);
+        }
+        
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+        
+        .feature-icon {
+            font-size: 3.5rem;
+            margin-bottom: 25px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: var(--secondary);
+        }
+        
+        .feature-card p {
+            margin-bottom: 20px;
+            color: var(--light);
+        }
+        
+        .feature-list {
+            list-style: none;
+            margin-top: 20px;
+        }
+        
+        .feature-list li {
+            padding: 8px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        
+        .feature-list li::before {
+            content: '\f00c';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            left: 0;
+            color: var(--secondary);
+        }
+        
+        /* Interactive Demo (Image Generation Specific) */
+        .interactive-demo {
+            padding: 100px 0;
+            text-align: center;
+        }
+        
+        .demo-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .demo-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(106, 76, 255, 0.3);
+            border-radius: 15px;
+            padding: 40px;
+            margin-top: 40px;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .demo-output {
+            min-height: 300px; /* Aumentar altura para imágenes */
+            padding: 20px;
+            background: rgba(15, 18, 45, 0.5);
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center; /* Centrar imagen */
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--light);
+            font-size: 1.1em;
+            flex-direction: column;
+        }
+        
+        .demo-output::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg,
+                rgba(106, 76, 255, 0.1) 0%,
+                rgba(0, 225, 255, 0.05) 100%);
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        .demo-output p, .demo-output img {
+            z-index: 1; /* Ensure content is above pseudo-element */
+        }
+
+        .demo-output img {
+            max-width: 100%;
+            max-height: 400px; /* Limitar altura de imagen para evitar desbordamiento */
+            height: auto;
+            border-radius: 8px;
+            display: block; /* Para centrar la imagen */
+            margin: 0 auto; /* Para centrar la imagen */
+        }
+        
+        .demo-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .demo-btn {
+            padding: 12px 20px;
+            background: rgba(106, 76, 255, 0.2);
+            color: var(--secondary);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Exo 2', sans-serif;
+            font-weight: 600;
+        }
+        
+        .demo-btn:hover {
+            background: rgba(106, 76, 255, 0.4);
+            transform: translateY(-3px);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        /* Responsive */
+        @media (max-width: 992px) {
+            .header-container {
+                flex-direction: column;
+                gap: 20px;
+            }
+            nav ul {
+                gap: 20px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.8rem;
+            }
+        }
+
+        /* Footer specific styles for white text */
+        footer .footer-column p,
+        footer .footer-column ul li,
+        footer .footer-column a,
+        footer .copyright {
+            color: var(--light); /* Ensure all text in footer columns and copyright is white */
+        }
+
+        footer .social-links a {
+            color: var(--secondary); /* Keep social icons vibrant */
+        }
+    </style>
+</head>
+<body>
+    <!-- Dynamic Background -->
+    <div id="vanta-bg"></div>
+    <div class="grid-overlay"></div>
+    <div class="glow-overlay"></div>
+    
+    <!-- Header -->
+    <header>
+        <div class="container header-container">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-image"></i> <!-- Icono para Imágenes -->
+                </div>
+                <div class="logo-text">CAELAFICHA</div>
+            </a>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Inicio</a></li>
+                    <li><a href="caelaficha-materialize-ideas.html">Materializar Ideas</a></li>
+                    <li><a href="caelaficha-investigacion.html">Investigación Profunda</a></li>
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><a href="imagenes.html">Imágenes</a></li>
+                    <li><a href="index.html#contact">Contacto</a></li>
+                </ul>
+            </nav>
+            <button class="cta-button" id="premium-access">Acceso Premium</button>
+        </div>
+    </header>
+    
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>Crea <span class="hero-gradient">Imágenes Únicas</span> con IA</h1> 
+            <p>Transforma descripciones textuales en visuales impresionantes con nuestra avanzada IA generadora de imágenes.</p> 
+            <div class="hero-buttons">
+                <button class="cta-button" id="view-demo" onclick="document.getElementById('demo').scrollIntoView({ behavior: 'smooth' });">Crear Imagen Ahora</button> 
+            </div>
+        </div>
+    </section>
+    
+    <!-- Image Generation Demo Section -->
+    <section id="demo" class="interactive-demo">
+        <div class="container">
+            <div class="section-title">
+                <h2>Generador de <span class="hero-gradient">Imágenes</span> por Texto</h2>
+                <p>Describe la imagen que deseas y nuestra IA la creará para ti.</p>
+            </div>
+            <div class="demo-container">
+                <div class="demo-card">
+                    <h3>Describe tu Imagen</h3>
+                    <p>Sé lo más detallado posible para obtener el mejor resultado:</p>
+                    <input type="text" class="storage-input" id="image-prompt-input" placeholder="Ej: 'Un dragón volando sobre un castillo de fantasía al atardecer, estilo óleo'">
+                    <div class="demo-controls">
+                        <button class="cta-button" id="generate-image-btn">Generar Imagen</button>
+                    </div>
+                    
+                    <div class="demo-output" id="image-output">
+                        <p>Tu imagen generada aparecerá aquí...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-column">
+                    <h3>Caelaficha</h3>
+                    <p>Potenciando tu productividad con inteligencia artificial de vanguardia.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+                <div class="footer-column">
+                    <h3>Enlaces Rápidos</h3>
+                    <ul>
+                        <li><a href="index.html">Inicio</a></li>
+                        <li><a href="caelaficha-materialize-ideas.html">Materializar Ideas</a></li>
+                        <li><a href="caelaficha-investigacion.html">Investigación Profunda</a></li>
+                        <li><a href="dashboard.html">Dashboard</a></li>
+                        <li><a href="imagenes.html">Imágenes</a></li>
+                        <li><a href="index.html#contact">Contacto</a></li>
+                        <li><a href="index.html#timeline">Hoja de Ruta</a></li>
+                        <li><a href="index.html#metrics">Métricas</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Soporte</h3>
+                    <ul>
+                        <li><a href="#">Preguntas Frecuentes</a></li>
+                        <li><a href="#">Centro de Ayuda</a></li>
+                        <li><a href="#">Privacidad</a></li>
+                        <li><a href="#">Términos de Servicio</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Contacto</h3>
+                    <p><i class="fas fa-map-marker-alt"></i> Buenos Aires, Argentina</p>
+                    <p><i class="fas fa-envelope"></i> itfrombit@gmail.com</p>
+                    <p><i class="fas fa-phone"></i> +54 15 2765 2386</p>
+                </div>
+            </div>
+            <div class="copyright">
+                &copy; 2025 Caelaficha. Todos los derechos reservados.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Firebase SDK Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Initialize Vanta.js background
+        VANTA.NET({
+            el: "#vanta-bg",
+            mouseControls: true,
+            touchControls: true,
+            gyroControls: false,
+            minHeight: 200.00,
+            minWidth: 200.00,
+            scale: 1.00,
+            scaleMobile: 1.00,
+            color: 0x6a4cff,
+            backgroundColor: 0x70812,
+            points: 10.00,
+            maxDistance: 25.00,
+            spacing: 15.00
+        });
+
+        // Initialize Firebase (for future features if needed, though not directly used for images here)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-caelaficha-app';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}'); 
+
+        let app;
+        let db;
+        let auth;
+        let currentUserId = null;
+
+        if (Object.keys(firebaseConfig).length > 0) {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            console.log("Firebase initialized.");
+        } else {
+            console.error("Firebase configuration is missing or empty. Ensure __firebase_config is available.");
+        }
+
+        if (auth) {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUserId = user.uid;
+                    console.log("User authenticated:", currentUserId);
+                } else {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                            console.log("Signed in with custom token.");
+                        } else {
+                            await signInAnonymously(auth);
+                            console.log("Signed in anonymously.");
+                        }
+                    } catch (error) {
+                        console.error("Error signing in:", error);
+                    }
+                }
+            });
+        }
+
+        // --- Image Generation Logic (Gemini API - Imagen 3.0) ---
+        const imagePromptInput = document.getElementById('image-prompt-input');
+        const generateImageBtn = document.getElementById('generate-image-btn');
+        const imageOutput = document.getElementById('image-output');
+
+        /**
+         * Displays a message in the image output area.
+         * @param {string} message - The message to display.
+         */
+        const displayImageOutput = (message) => {
+            imageOutput.innerHTML = `<p>${message}</p>`;
+        };
+
+        /**
+         * Displays a loading spinner in the image output area.
+         */
+        const showImageLoading = () => {
+            imageOutput.innerHTML = '<p style="color: var(--secondary);"><i class="fas fa-spinner fa-spin"></i> Generando imagen...</p>';
+        };
+
+        /**
+         * Generates an image using the Gemini API (Imagen 3.0).
+         * @param {string} prompt - The prompt (description) for the image.
+         */
+        const generateImage = async (prompt) => {
+            if (!prompt) {
+                displayImageOutput("Por favor, introduce una descripción para generar la imagen.");
+                return;
+            }
+
+            showImageLoading();
+            try {
+                const payload = { instances: { prompt: prompt }, parameters: { "sampleCount": 1} };
+                const apiKey = ""; // Canvas will provide this at runtime for imagen-3.0-generate-002
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
+                    const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                    imageOutput.innerHTML = `<img src="${imageUrl}" alt="Imagen generada por IA" onerror="this.onerror=null;this.src='https://placehold.co/400x200/FF2A78/c7e5ff?text=Error+al+cargar+imagen';">`;
+                } else {
+                    let errorMessage = "No se pudo generar la imagen. ";
+                    if (result && result.predictions && result.predictions.length === 0) {
+                        errorMessage += "El modelo no devolvió ninguna imagen.";
+                    } else if (result && result.error && result.error.message) {
+                        errorMessage += `Error del modelo: ${result.error.message}`;
+                    } else {
+                        errorMessage += "Respuesta inesperada del modelo.";
+                    }
+                    displayImageOutput(errorMessage);
+                    console.error("Gemini API Image Error (Full Response):", result);
+                }
+            } catch (error) {
+                displayImageOutput(`Error al generar imagen: ${error.message}`);
+                console.error("Gemini API Image Error:", error);
+            }
+        };
+
+        // Event listener for generating an image
+        if (generateImageBtn) {
+            generateImageBtn.addEventListener('click', () => generateImage(imagePromptInput.value.trim()));
+        }
+    </script>
+</body>
+</html>
