@@ -1,4 +1,5 @@
-CAELAFICHA: Materializa tus Ideas con Profundidad y Precisión
+CAELAFICHA: 
+Materializa tus Ideas con Profundidad y Precisión
 ¡Bienvenido/a a CAELAFICHA! Si tienes una idea dando vueltas en tu cabeza y necesitas transformarla en una realidad tangible, has llegado al lugar correcto. Somos tu compañero estratégico para la investigación profunda de ideas y la generación de guías prácticas impulsadas por inteligencia artificial.
 
 ¿Qué es CAELAFICHA?
